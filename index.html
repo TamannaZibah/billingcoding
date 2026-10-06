@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 5: Medical Billing & Collections Virtual Lab Suite</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            medblue: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              800: '#0c4a6e',
+              900: '#082f49',
+            },
+            clinical: {
+              surface: '#ffffff',
+              subtle: '#f8fafc',
+              border: '#e2e8f0',
+              text: '#0f172a',
+              muted: '#64748b'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    *:focus-visible {
+      outline: 3px solid #0369a1 !important;
+      outline-offset: 2px !important;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background: white !important; color: black !important; font-size: 10pt; }
+    }
+    .sr-only-focusable:focus {
+      position: static !important;
+      width: auto !important;
+      height: auto !important;
+      clip: auto !important;
+      clip-path: none !important;
+    }
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-full flex flex-col font-sans selection:bg-sky-100 selection:text-sky-900">
+
+  <!-- Accessible Skip Link -->
+  <a href="#main-billing-content" class="sr-only sr-only-focusable z-50 bg-sky-800 text-white p-3 rounded-br-lg font-semibold shadow-lg">
+    Skip to Main Content (Press Enter)
+  </a>
+
+  <!-- ARIA Live Announcer for Screen Readers -->
+  <div id="aria-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Toast Notification Modal (No alert()) -->
+  <div id="toast-notify" role="status" aria-live="assertive" class="fixed bottom-6 right-6 z-50 transform translate-y-28 opacity-0 transition-all duration-300 pointer-events-none max-w-md w-full bg-slate-900 text-white p-4 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700">
+    <div id="toast-icon-wrap" class="text-sky-400 flex-shrink-0">
+      <i data-lucide="check-circle" class="w-6 h-6"></i>
+    </div>
+    <div class="flex-1 text-xs sm:text-sm font-medium" id="toast-message-text">Notification message</div>
+    <button onclick="dismissNotification()" class="text-slate-400 hover:text-white p-1 rounded focus:ring-1 focus:ring-sky-400" aria-label="Close notification">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
+
+  <!-- Header Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-700 flex items-center justify-center text-white shadow-md shadow-sky-700/20" aria-hidden="true">
+            <i data-lucide="receipt" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-900 leading-tight">Module 5: Medical Billing & Collections</h1>
+            <p class="text-xs text-slate-500 font-medium">Administrative Procedures Lab Activities &bull; 6 Hours Total Practicum</p>
+          </div>
+        </div>
+
+        <!-- Global Lab Utilities -->
+        <div class="flex items-center gap-3">
+          <!-- Session Timer (60 min per module) -->
+          <div class="bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs font-mono font-medium text-slate-700" title="Lab Session Timer" aria-label="Lab Timer">
+            <i data-lucide="clock" class="w-4 h-4 text-sky-600" aria-hidden="true"></i>
+            <span id="session-timer-text">60:00</span>
+            <button id="timer-toggle-btn" onclick="toggleTimer()" class="ml-1 text-sky-700 hover:text-sky-900 underline font-sans text-xs">Pause</button>
+            <button onclick="resetTimer()" class="text-slate-500 hover:text-slate-800 underline font-sans text-xs">Reset</button>
+          </div>
+
+          <!-- Progress summary -->
+          <button onclick="togglePortfolioModal()" class="flex items-center gap-2 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition" aria-label="View Module 5 portfolio progress">
+            <i data-lucide="award" class="w-4 h-4 text-sky-600" aria-hidden="true"></i>
+            <span>Completed: <span id="overall-completed-count">0</span>/5</span>
+          </button>
+
+          <!-- Print / PDF Report -->
+          <button onclick="window.print()" class="hidden sm:inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow transition" aria-label="Print or export lab log to PDF">
+            <i data-lucide="printer" class="w-4 h-4" aria-hidden="true"></i>
+            <span>Print Report</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs for the 5 Modules -->
+      <nav class="flex space-x-1 overflow-x-auto py-2 border-t border-slate-100 scrollbar-thin" aria-label="Medical Billing Lab Modules">
+        <button onclick="activateModuleTab(1)" id="tab-button-1" class="module-tab active-tab whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-sky-700 text-white shadow-sm" aria-current="page">
+          <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">1</span>
+          <span>1. Charge Posting Challenge (10 Cases)</span>
+          <span id="tab-badge-1" class="hidden text-emerald-300"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+        </button>
+
+        <button onclick="activateModuleTab(2)" id="tab-button-2" class="module-tab whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">2</span>
+          <span>2. Patient Ledger Management</span>
+          <span id="tab-badge-2" class="hidden text-emerald-600"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+        </button>
+
+        <button onclick="activateModuleTab(3)" id="tab-button-3" class="module-tab whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">3</span>
+          <span>3. Payment Plan Design</span>
+          <span id="tab-badge-3" class="hidden text-emerald-600"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+        </button>
+
+        <button onclick="activateModuleTab(4)" id="tab-button-4" class="module-tab whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">4</span>
+          <span>4. Collections Communication Simulation</span>
+          <span id="tab-badge-4" class="hidden text-emerald-600"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+        </button>
+
+        <button onclick="activateModuleTab(5)" id="tab-button-5" class="module-tab whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+          <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-[10px]">5</span>
+          <span>5. Billing Case Study Capstone (Lab 6)</span>
+          <span id="tab-badge-5" class="hidden text-emerald-600"><i data-lucide="check" class="w-3.5 h-3.5"></i></span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-billing-content" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6" tabindex="-1">
+
+    <!-- ========================================================================= -->
+    <!-- LAB 1: CHARGE POSTING CHALLENGE (10 ENCOUNTERS) -->
+    <!-- ========================================================================= -->
+    <section id="module-section-1" class="lab-pane space-y-6" aria-labelledby="lab-1-title">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 mb-2">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i> Time: 60 Minutes &bull; Lab 1 of 5
+            </div>
+            <h2 id="lab-1-title" class="text-2xl font-bold text-slate-900">Lab 1: Charge Posting Challenge</h2>
+            <p class="text-sm text-slate-600 mt-1 max-w-3xl">
+              <strong>Scenario:</strong> You are responsible for posting charges for 10 patient encounters from today's clinic schedule. Review each encounter routing slip, match clinical visit types and procedures to the correct CPT fee schedule, verify copay collections, and complete the official Charge Posting Log.
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 block">Deliverable: Charge Posting Log</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">Skills: Charge Posting &bull; Revenue Cycle Fundamentals</span>
+          </div>
+        </div>
+
+        <!-- Encounter Selector Grid -->
+        <div class="mt-6">
+          <div class="flex items-center justify-between mb-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Select Encounter to Audit & Post (1 through 10):
+            </label>
+            <span id="lab1-progress-tag" class="text-xs font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200">
+              Posted: 0 of 10 Encounters
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2 mb-6" role="tablist" aria-label="10 Patient Encounters">
+            <!-- 10 Interactive selector buttons dynamically generated in JS -->
+            <div id="encounter-buttons-container" class="contents"></div>
+          </div>
+
+          <!-- Encounter Details & Charge Posting Terminal -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Superbill / Clinical Encounter Slip (Left Column) -->
+            <div class="lg:col-span-5 bg-slate-900 text-slate-100 rounded-xl p-5 font-mono text-xs shadow-inner border border-slate-800">
+              <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+                <span class="flex items-center gap-2 text-sky-400 font-bold uppercase tracking-wider">
+                  <i data-lucide="file-text" class="w-4 h-4"></i> Clinical Encounter Routing Slip
+                </span>
+                <span id="encounter-badge-id" class="text-[10px] bg-sky-950 text-sky-300 border border-sky-800 px-2 py-0.5 rounded font-sans font-bold">CASE #1</span>
+              </div>
+              <div id="encounter-slip-view" class="space-y-3 whitespace-pre-wrap leading-relaxed text-slate-300">
+                <!-- Dynamically loaded slip -->
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-400 font-sans">
+                <span class="font-bold text-sky-400">Clinic Fee Schedule Reference:</span>
+                <p id="fee-schedule-hint" class="mt-1 text-slate-300 font-mono text-[10px]">
+                  99203 New Mod: $145 | 99204 New High: $210 | 99213 Est Low: $95 | 99214 Est Mod: $140 | 99215 Est High: $195 | 93000 ECG: $55 | 36415 Venipuncture: $25 | 20610 Joint Inj: $120 | 17000 Lesion: $110 | 90471 Admin: $35
+                </p>
+              </div>
+            </div>
+
+            <!-- Charge Entry Input Form (Right Column) -->
+            <div class="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-xl p-5">
+              <h3 class="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="edit-3" class="w-4 h-4 text-sky-600"></i>
+                Charge Posting Worksheet Entry
+              </h3>
+
+              <form id="lab1-posting-form" onsubmit="event.preventDefault(); submitChargePostingCase();" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label for="post-patient-name" class="block text-xs font-semibold text-slate-700 mb-1">Patient Name</label>
+                    <input type="text" id="post-patient-name" readonly class="w-full text-xs px-3 py-2 bg-slate-100 rounded-lg border border-slate-300 text-slate-800 font-mono">
+                  </div>
+                  <div>
+                    <label for="post-visit-type" class="block text-xs font-semibold text-slate-700 mb-1">Office Visit Type (E/M Classification) <span class="text-red-500">*</span></label>
+                    <select id="post-visit-type" required class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-sky-600">
+                      <option value="">Select visit type...</option>
+                      <option value="99203">New Patient - Moderate Complexity (99203)</option>
+                      <option value="99204">New Patient - Comprehensive / High Complexity (99204)</option>
+                      <option value="99212">Established Patient - Problem Focused / Minimal (99212)</option>
+                      <option value="99213">Established Patient - Low / Moderate MDM (99213)</option>
+                      <option value="99214">Established Patient - Moderate Complexity (99214)</option>
+                      <option value="99215">Established Patient - High Complexity / Extended (99215)</option>
+                      <option value="NONE">No E/M Billed (Procedure / Nurse Visit Only)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label for="post-procedure" class="block text-xs font-semibold text-slate-700 mb-1">Procedure Performed (Code & Description) <span class="text-red-500">*</span></label>
+                    <select id="post-procedure" required class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-sky-600">
+                      <option value="">Select procedure...</option>
+                      <option value="NONE">None - Evaluation & Management Only</option>
+                      <option value="93000">93000 - 12-Lead Electrocardiogram (ECG) with interpretation</option>
+                      <option value="36415">36415 - Routine Venipuncture / Blood Draw</option>
+                      <option value="20610">20610 - Arthrocentesis / Major Joint Injection (Knee/Shoulder)</option>
+                      <option value="17000">17000 - Destruction of Premalignant Lesion (Cryosurgery 1st)</option>
+                      <option value="90471">90471 - Immunization Administration (Single Vaccine)</option>
+                      <option value="81002">81002 - Urinalysis, Non-Automated (Dipstick)</option>
+                      <option value="96372">96372 - Therapeutic IM/SubQ Injection Administration</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label for="post-copay-collected" class="block text-xs font-semibold text-slate-700 mb-1">Copay Amount Collected at Check-in ($) <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                      <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">$</span>
+                      <input type="number" id="post-copay-collected" required min="0" step="1" placeholder="25" class="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-sky-600">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label for="post-total-charge" class="block text-xs font-semibold text-slate-700 mb-1">Total Fee Amount Billed ($) <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                      <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">$</span>
+                      <input type="number" id="post-total-charge" required min="0" step="1" placeholder="150" class="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-sky-600 font-mono">
+                    </div>
+                    <span class="text-[10px] text-slate-500 mt-1 block">Sum of visit fee + procedure fee based on clinic fee schedule.</span>
+                  </div>
+
+                  <div>
+                    <label for="post-modifier" class="block text-xs font-semibold text-slate-700 mb-1">Modifier Required (if applicable)</label>
+                    <select id="post-modifier" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:border-sky-600">
+                      <option value="NONE">None Required</option>
+                      <option value="25">Modifier -25 (Significant, Separately Identifiable E/M Service)</option>
+                      <option value="59">Modifier -59 (Distinct Procedural Service)</option>
+                      <option value="RT/LT">Modifier RT / LT (Right / Left Anatomical Site)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between pt-2 gap-3">
+                  <div class="flex items-center gap-2">
+                    <button type="submit" class="px-4 py-2.5 bg-sky-700 hover:bg-sky-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-2">
+                      <i data-lucide="check" class="w-4 h-4"></i> Post & Validate Encounter Charges
+                    </button>
+                    <button type="button" onclick="autoFillEncounter()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-medium transition">
+                      Auto-Fill Selected
+                    </button>
+                  </div>
+                  <div id="lab1-feedback-message" class="text-xs font-semibold"></div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Deliverable: Charge Posting Table Log -->
+        <div class="mt-8 pt-6 border-t border-slate-200">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Official Daily Charge Posting Log (Deliverable)</h4>
+            <span id="log-total-revenue" class="text-xs font-mono font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg border">
+              Total Day Charges: $0.00 | Copays Collected: $0.00
+            </span>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                <tr>
+                  <th scope="col" class="py-2.5 px-3">#</th>
+                  <th scope="col" class="py-2.5 px-3">Patient Name</th>
+                  <th scope="col" class="py-2.5 px-3">Visit Type (E/M)</th>
+                  <th scope="col" class="py-2.5 px-3">Procedure</th>
+                  <th scope="col" class="py-2.5 px-3">Modifier</th>
+                  <th scope="col" class="py-2.5 px-3 font-mono">Charge</th>
+                  <th scope="col" class="py-2.5 px-3 font-mono">Copay Paid</th>
+                  <th scope="col" class="py-2.5 px-3">Status</th>
+                </tr>
+              </thead>
+              <tbody id="charge-posting-tbody" class="divide-y divide-slate-100 font-mono text-[11px] text-slate-800">
+                <!-- Dynamically updated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- LAB 2: PATIENT LEDGER MANAGEMENT -->
+    <!-- ========================================================================= -->
+    <section id="module-section-2" class="lab-pane hidden space-y-6" aria-labelledby="lab-2-title">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 mb-2">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i> Time: 60 Minutes &bull; Lab 2 of 5
+            </div>
+            <h2 id="lab-2-title" class="text-2xl font-bold text-slate-900">Lab 2: Patient Ledger Management</h2>
+            <p class="text-sm text-slate-600 mt-1 max-w-3xl">
+              <strong>Scenario:</strong> Patient Evelyn Reed has multiple clinical appointments, diagnostic labs, insurance remittances (ERA 835), contractual adjustments, and copayment transactions posted over a 60-day billing cycle. Review each transaction line, reconcile debits and credits, and calculate the final account balances.
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 block">Deliverable: Patient Ledger Worksheet</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">Skills: Account Management &bull; Payment Tracking &bull; Financial Accuracy</span>
+          </div>
+        </div>
+
+        <!-- Ledger Overview & Mathematical Reconciler -->
+        <div class="mt-6 space-y-6">
+          <div class="bg-slate-900 text-slate-100 rounded-xl p-5 shadow-inner border border-slate-800">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
+              <div>
+                <span class="text-xs font-bold text-sky-400 uppercase tracking-wider font-mono">PATIENT ACCOUNT LEDGER #AC-884910</span>
+                <h3 class="text-sm font-bold text-white mt-0.5">Subscriber: Evelyn Reed | DOB: 04/18/1976 | Payer: Aetna Choice POS II</h3>
+              </div>
+              <div class="text-right">
+                <span class="text-[11px] font-mono text-slate-400">Statement Period: Oct 01 - Nov 30</span>
+              </div>
+            </div>
+
+            <!-- Ledger Table -->
+            <div class="overflow-x-auto mt-4">
+              <table class="w-full text-left text-xs font-mono border-collapse">
+                <thead class="bg-slate-800/80 text-slate-300 font-semibold border-b border-slate-700">
+                  <tr>
+                    <th class="py-2 px-2.5">Date</th>
+                    <th class="py-2 px-2.5">Description / Code</th>
+                    <th class="py-2 px-2.5 text-right">Charges (+)</th>
+                    <th class="py-2 px-2.5 text-right text-emerald-400">Ins. Paid (-)</th>
+                    <th class="py-2 px-2.5 text-right text-sky-400">Pt. Paid (-)</th>
+                    <th class="py-2 px-2.5 text-right text-amber-400">Adj/Writeoff (-)</th>
+                    <th class="py-2 px-2.5 text-right">Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-[11px] text-slate-200">
+                  <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-2.5">10/02</td>
+                    <td class="py-2 px-2.5 font-sans">Office Visit (CPT 99214)</td>
+                    <td class="py-2 px-2.5 text-right">$150.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold">$150.00</td>
+                  </tr>
+                  <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-2.5">10/02</td>
+                    <td class="py-2 px-2.5 font-sans">Copay Check #1042</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-sky-300">$30.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold">$120.00</td>
+                  </tr>
+                  <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-2.5">10/18</td>
+                    <td class="py-2 px-2.5 font-sans">Aetna ERA Remit #ERA-9912</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-emerald-300">$85.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold">$35.00</td>
+                  </tr>
+                  <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-2.5">10/18</td>
+                    <td class="py-2 px-2.5 font-sans">Contractual Adjustment (CO-45)</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-amber-300">$35.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold text-emerald-400">$0.00</td>
+                  </tr>
+                  <tr class="hover:bg-slate-800/40 bg-slate-800/20">
+                    <td class="py-2 px-2.5">11/05</td>
+                    <td class="py-2 px-2.5 font-sans">Follow-up + ECG (99213 + 93000)</td>
+                    <td class="py-2 px-2.5 text-right">$150.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold">$150.00</td>
+                  </tr>
+                  <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-2.5">11/05</td>
+                    <td class="py-2 px-2.5 font-sans">Copay Credit Card Visa *8812</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-sky-300">$30.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold">$120.00</td>
+                  </tr>
+                  <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-2.5">11/20</td>
+                    <td class="py-2 px-2.5 font-sans">Aetna ERA Remit #ERA-0145</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-emerald-300">$60.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold">$60.00</td>
+                  </tr>
+                  <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-2.5">11/20</td>
+                    <td class="py-2 px-2.5 font-sans">Contractual Adjustment (CO-45)</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-slate-500">$0.00</td>
+                    <td class="py-2 px-2.5 text-right text-amber-300">$20.00</td>
+                    <td class="py-2 px-2.5 text-right font-bold text-amber-300">? [Line Audit]</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Ledger Audit Reconciler Form -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+            <h3 class="text-sm font-bold text-slate-900 mb-2 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="calculator" class="w-4 h-4 text-sky-600"></i>
+              Ledger Reconciliation Worksheet Calculations
+            </h3>
+            <p class="text-xs text-slate-600 mb-4">Calculate totals across all columns and determine the exact outstanding patient responsibility.</p>
+
+            <form id="ledger-audit-form" onsubmit="event.preventDefault(); verifyLedgerAudit();" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label for="led-total-charges" class="block text-xs font-semibold text-slate-700 mb-1">1. Gross Charges Billed ($) <span class="text-red-500">*</span></label>
+                <input type="number" id="led-total-charges" required placeholder="300" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono">
+              </div>
+
+              <div>
+                <label for="led-total-inspaid" class="block text-xs font-semibold text-slate-700 mb-1">2. Total Insurance Paid ($) <span class="text-red-500">*</span></label>
+                <input type="number" id="led-total-inspaid" required placeholder="145" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono">
+              </div>
+
+              <div>
+                <label for="led-total-ptpaid" class="block text-xs font-semibold text-slate-700 mb-1">3. Total Patient Payments ($) <span class="text-red-500">*</span></label>
+                <input type="number" id="led-total-ptpaid" required placeholder="60" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono">
+              </div>
+
+              <div>
+                <label for="led-total-adjustments" class="block text-xs font-semibold text-slate-700 mb-1">4. Contractual Adjustments ($) <span class="text-red-500">*</span></label>
+                <input type="number" id="led-total-adjustments" required placeholder="55" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono">
+              </div>
+
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label for="led-current-balance" class="block text-xs font-semibold text-slate-700 mb-1">5. Current Account Balance Outstanding ($) <span class="text-red-500">*</span></label>
+                <input type="number" id="led-current-balance" required placeholder="Formula: Charges - InsPaid - PtPaid - Adjustments" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono font-bold text-sky-800">
+              </div>
+
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label for="led-patient-responsibility" class="block text-xs font-semibold text-slate-700 mb-1">6. Remaining Patient Responsibility ($) <span class="text-red-500">*</span></label>
+                <input type="number" id="led-patient-responsibility" required placeholder="Balance billable to Evelyn Reed" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 bg-white font-mono font-bold text-amber-800">
+              </div>
+
+              <div class="sm:col-span-2 lg:col-span-4 flex items-center justify-between pt-2">
+                <div class="flex items-center gap-2">
+                  <button type="submit" class="px-5 py-2.5 bg-sky-700 hover:bg-sky-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-2">
+                    <i data-lucide="check-check" class="w-4 h-4"></i> Validate Ledger Calculations
+                  </button>
+                  <button type="button" onclick="autoFillLedger()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-medium transition">
+                    Hint / Solution
+                  </button>
+                </div>
+                <div id="ledger-feedback-box" class="text-xs font-semibold"></div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- LAB 3: PAYMENT PLAN DESIGN -->
+    <!-- ========================================================================= -->
+    <section id="module-section-3" class="lab-pane hidden space-y-6" aria-labelledby="lab-3-title">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 mb-2">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i> Time: 60 Minutes &bull; Lab 3 of 5
+            </div>
+            <h2 id="lab-3-title" class="text-2xl font-bold text-slate-900">Lab 3: Payment Plan Design</h2>
+            <p class="text-sm text-slate-600 mt-1 max-w-3xl">
+              <strong>Scenario:</strong> Three patients are experiencing financial difficulties and cannot pay their outstanding balances in full upon receipt of statement. Structure fair, compliant, and realistic monthly installment plans while applying clinic financial advocacy policies.
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 block">Deliverable: Patient Payment Plan Worksheet</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">Skills: Patient Advocacy &bull; Collections Management &bull; Problem Solving</span>
+          </div>
+        </div>
+
+        <!-- 3 Patient Account Tabs -->
+        <div class="mt-6">
+          <div class="flex flex-wrap gap-2 mb-5" role="tablist">
+            <button onclick="loadPlanPatient(0)" id="plan-tab-0" class="plan-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-sky-700 text-white shadow-sm border border-sky-700">Patient A: $250 Balance (Mild Hardship)</button>
+            <button onclick="loadPlanPatient(1)" id="plan-tab-1" class="plan-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Patient B: $800 Balance (Moderate Hardship)</button>
+            <button onclick="loadPlanPatient(2)" id="plan-tab-2" class="plan-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Patient C: $1,500 Balance (Severe Medical Debt)</button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Patient Profile & Clinic Guidelines -->
+            <div class="lg:col-span-5 space-y-4">
+              <div class="bg-sky-50 border border-sky-200 rounded-xl p-4 text-xs">
+                <h4 class="font-bold text-sky-900 flex items-center gap-1.5 mb-2">
+                  <i data-lucide="shield-alert" class="w-4 h-4 text-sky-700"></i> Clinic Payment Policy Parameters
+                </h4>
+                <ul class="list-disc pl-4 space-y-1 text-sky-950">
+                  <li><strong>Balances under $300:</strong> 2 to 5 monthly installments (Minimum $50/month).</li>
+                  <li><strong>Balances $300 - $1,000:</strong> 4 to 8 monthly installments (Minimum $100/month).</li>
+                  <li><strong>Balances over $1,000:</strong> 6 to 12 monthly installments (Minimum $125/month).</li>
+                  <li>Zero interest or finance fees charged to patient.</li>
+                  <li>Requires signed Promissory Agreement with automatic monthly debit authorization.</li>
+                </ul>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <i data-lucide="user" class="w-4 h-4 text-sky-600"></i>
+                  Patient Case Background
+                </h4>
+                <div id="plan-patient-bio" class="text-xs text-slate-700 space-y-2 leading-relaxed">
+                  <!-- Dynamic text -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Agreement Builder -->
+            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+              <h3 class="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
+                <i data-lucide="file-signature" class="w-4 h-4 text-sky-600"></i>
+                Formal Promissory Installment Agreement
+              </h3>
+
+              <form id="plan-builder-form" onsubmit="event.preventDefault(); verifyPaymentPlanCase();" class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="plan-patient-name" class="block text-xs font-semibold text-slate-700 mb-1">Patient Name</label>
+                    <input type="text" id="plan-patient-name" readonly class="w-full text-xs px-3 py-2 bg-slate-100 rounded-lg border border-slate-300 font-mono text-slate-800">
+                  </div>
+                  <div>
+                    <label for="plan-total-balance" class="block text-xs font-semibold text-slate-700 mb-1">Total Outstanding Principal</label>
+                    <input type="text" id="plan-total-balance" readonly class="w-full text-xs px-3 py-2 bg-slate-100 rounded-lg border border-slate-300 font-mono font-bold text-slate-900">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="plan-num-payments" class="block text-xs font-semibold text-slate-700 mb-1">Number of Monthly Payments <span class="text-red-500">*</span></label>
+                    <input type="number" id="plan-num-payments" min="2" max="15" required placeholder="e.g. 5" oninput="calculateInstallmentSuggestion()" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-sky-600 font-mono">
+                  </div>
+                  <div>
+                    <label for="plan-monthly-amount" class="block text-xs font-semibold text-slate-700 mb-1">Agreed Monthly Payment ($) <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                      <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">$</span>
+                      <input type="number" id="plan-monthly-amount" step="any" required placeholder="50.00" class="w-full text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:border-sky-600 font-mono">
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="plan-comm-strategy" class="block text-xs font-semibold text-slate-700 mb-1">Patient Communication & Engagement Strategy <span class="text-red-500">*</span></label>
+                  <textarea id="plan-comm-strategy" rows="3" required placeholder="Describe how you will present this plan empathetically, offer auto-pay or reminder SMS/emails, and secure the signed commitment..." class="w-full text-xs p-3 rounded-lg border border-slate-300 text-slate-800 focus:outline-none focus:border-sky-600"></textarea>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                  <button type="submit" class="px-4 py-2 bg-sky-700 hover:bg-sky-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Approve & Log Payment Plan
+                  </button>
+                  <div id="plan-feedback-status" class="text-xs font-semibold"></div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Approved Plans Summary Table -->
+          <div class="mt-8 pt-5 border-t border-slate-200">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Approved Payment Plans Registry (Deliverable)</h4>
+            <div id="approved-plans-container" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- Dynamically populated cards -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- LAB 4: COLLECTIONS COMMUNICATION SIMULATION -->
+    <!-- ========================================================================= -->
+    <section id="module-section-4" class="lab-pane hidden space-y-6" aria-labelledby="lab-4-title">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 mb-2">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i> Time: 60 Minutes &bull; Lab 4 of 5
+            </div>
+            <h2 id="lab-4-title" class="text-2xl font-bold text-slate-900">Lab 4: Collections Communication Simulation</h2>
+            <p class="text-sm text-slate-600 mt-1 max-w-3xl">
+              <strong>Scenario:</strong> Patients with overdue balances frequently become defensive, anxious, or confused when contacted. Practice conflict resolution across 3 distinct challenging collection scenarios: outright refusal, insurance billing dispute, and hardship payment extension requests.
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 block">Deliverable: Financial Script Portfolio</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">Skills: Conflict Resolution &bull; Customer Service &bull; Verbal Communication</span>
+          </div>
+        </div>
+
+        <!-- 3 Scenarios Switcher -->
+        <div class="mt-6">
+          <div class="flex flex-wrap gap-2 mb-5">
+            <button onclick="loadCollectionScenario(1)" id="col-scen-btn-1" class="col-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-sky-700 text-white shadow-sm border border-sky-700">Scenario 1: Patient Refuses to Pay Balance</button>
+            <button onclick="loadCollectionScenario(2)" id="col-scen-btn-2" class="col-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Scenario 2: Patient Claims Insurer Should Have Paid</button>
+            <button onclick="loadCollectionScenario(3)" id="col-scen-btn-3" class="col-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50">Scenario 3: Patient Requests Additional Time</button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Interactive Live Dialogue Sandbox (Left) -->
+            <div class="lg:col-span-6 bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col justify-between h-[520px]">
+              <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+                  <div class="flex items-center gap-2.5">
+                    <div id="col-patient-avatar" class="w-9 h-9 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs">
+                      PT
+                    </div>
+                    <div>
+                      <h3 id="col-caller-name" class="text-xs font-bold text-slate-900">Patient: Arthur King</h3>
+                      <p id="col-caller-sub" class="text-[11px] text-slate-500">Account 60 Days Delinquent ($185.00)</p>
+                    </div>
+                  </div>
+                  <button onclick="resetCollectionDialogue()" class="text-xs text-slate-500 hover:text-slate-800 underline">Restart Scenario</button>
+                </div>
+
+                <!-- Chat Messages Stream -->
+                <div id="col-chat-stream" class="space-y-3 overflow-y-auto max-h-72 p-2 pr-3 scrollbar-thin" aria-label="Conversation History" role="log">
+                  <!-- Injected via JS -->
+                </div>
+              </div>
+
+              <!-- Dialogue Decision Buttons -->
+              <div id="col-choice-actions" class="space-y-2 pt-3 border-t border-slate-200">
+                <!-- Choice buttons injected via JS -->
+              </div>
+            </div>
+
+            <!-- Official Deliverable: Professional Script Portfolio Form (Right) -->
+            <div class="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+                  <i data-lucide="file-text" class="w-4 h-4 text-sky-600"></i>
+                  Deliverable: Financial Communication Script Builder
+                </h3>
+                <p id="col-script-desc" class="text-xs text-slate-600 mb-4">
+                  Construct your verified script for <strong>Scenario 1</strong>. You must address empathy, office financial policy, and actionable solutions.
+                </p>
+
+                <form id="col-script-form" onsubmit="event.preventDefault(); submitCollectionScript();" class="space-y-3">
+                  <div>
+                    <label for="script-empathy" class="block text-xs font-semibold text-slate-700 mb-1">1. Empathetic De-escalation Statement <span class="text-red-500">*</span></label>
+                    <input type="text" id="script-empathy" required placeholder="Acknowledge frustration and affirm commitment to assist..." class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 text-slate-800 focus:outline-none focus:border-sky-600">
+                  </div>
+
+                  <div>
+                    <label for="script-policy" class="block text-xs font-semibold text-slate-700 mb-1">2. Transparent Explanation of Billing Policy & Statement <span class="text-red-500">*</span></label>
+                    <textarea id="script-policy" rows="2" required placeholder="Explain why the balance is due according to the EOB or patient financial consent..." class="w-full text-xs p-2.5 rounded-lg border border-slate-300 text-slate-800 focus:outline-none focus:border-sky-600"></textarea>
+                  </div>
+
+                  <div>
+                    <label for="script-solution" class="block text-xs font-semibold text-slate-700 mb-1">3. Collaborative Solution Offered <span class="text-red-500">*</span></label>
+                    <input type="text" id="script-solution" required placeholder="Offer payment plan, 3-way conference with payer, or grace period..." class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 text-slate-800 focus:outline-none focus:border-sky-600">
+                  </div>
+
+                  <div>
+                    <label for="script-nextstep" class="block text-xs font-semibold text-slate-700 mb-1">4. Confirm Understanding & Next Action Follow-up <span class="text-red-500">*</span></label>
+                    <input type="text" id="script-nextstep" required placeholder="Document next contact date and payment arrangement details..." class="w-full text-xs px-3 py-2 rounded-lg border border-slate-300 text-slate-800 focus:outline-none focus:border-sky-600">
+                  </div>
+
+                  <div class="flex items-center justify-between pt-2">
+                    <button type="submit" class="px-4 py-2 bg-sky-700 hover:bg-sky-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center gap-2">
+                      <i data-lucide="send" class="w-4 h-4"></i> Validate Script & Save to Portfolio
+                    </button>
+                    <div id="col-script-feedback" class="text-xs font-semibold"></div>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Standards reminder -->
+              <div class="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-600">
+                <span class="font-bold text-slate-800">FDCPA & HIPAA Compliance:</span> Never threaten, harass, or call outside 8am-9pm local time. Strictly protect PHI and do not disclose debts to third parties or family members without consent.
+              </div>
+            </div>
+          </div>
+
+          <!-- Script Portfolio Registry -->
+          <div class="mt-8 pt-5 border-t border-slate-200">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Financial Communication Portfolio (All 3 Required)</h4>
+            <div id="portfolio-scripts-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <!-- Dynamically populated scripts -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- LAB 5 / LAB 6: MEDICAL BILLING CASE STUDY CAPSTONE -->
+    <!-- ========================================================================= -->
+    <section id="module-section-5" class="lab-pane hidden space-y-6" aria-labelledby="lab-5-title">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200 mb-2">
+              <i data-lucide="clock" class="w-3.5 h-3.5"></i> Time: 60 Minutes &bull; Capstone Activity
+            </div>
+            <h2 id="lab-5-title" class="text-2xl font-bold text-slate-900">Lab 6: Medical Billing Case Study Capstone</h2>
+            <p class="text-sm text-slate-600 mt-1 max-w-3xl">
+              <strong>Scenario Audit:</strong> Review the following delinquent patient account:<br>
+              <code class="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-800">Office visit charge: $150 | Copay: $30 collected | Insurance paid: $90 | Remaining balance: $30 | Overdue: 45 Days</code>
+            </p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-3 py-1.5 rounded-lg border border-slate-200 block">Deliverable: Case Study Analysis Report</span>
+            <span class="text-[11px] text-slate-500 mt-1 block">Skills: Billing Analysis &bull; Collections &bull; Practice Recommendations</span>
+          </div>
+        </div>
+
+        <!-- 5-Phase Capstone Pipeline -->
+        <div class="mt-6 space-y-6">
+          <!-- Financial Snapshot Banner -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono text-center">
+            <div class="p-3 bg-slate-100 rounded-xl border border-slate-200">
+              <span class="block text-[10px] text-slate-500 uppercase">Gross Charge</span>
+              <span class="text-base font-bold text-slate-900">$150.00</span>
+            </div>
+            <div class="p-3 bg-sky-50 rounded-xl border border-sky-200">
+              <span class="block text-[10px] text-sky-700 uppercase">Copay Collected</span>
+              <span class="text-base font-bold text-sky-800">$30.00</span>
+            </div>
+            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+              <span class="block text-[10px] text-emerald-700 uppercase">Insurance Paid</span>
+              <span class="text-base font-bold text-emerald-800">$90.00</span>
+            </div>
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+              <span class="block text-[10px] text-amber-700 uppercase">Remaining Balance</span>
+              <span class="text-base font-bold text-amber-800">$30.00</span>
+            </div>
+            <div class="p-3 bg-rose-50 rounded-xl border border-rose-200 col-span-2 sm:col-span-1">
+              <span class="block text-[10px] text-rose-700 uppercase">Aging Status</span>
+              <span class="text-base font-bold text-rose-800">45 Days Past Due</span>
+            </div>
+          </div>
+
+          <!-- Capstone Report Form -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+            <h3 class="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="clipboard-check" class="w-4 h-4 text-sky-600"></i>
+              Comprehensive Case Study Analysis Report
+            </h3>
+
+            <form id="capstone-analysis-form" onsubmit="event.preventDefault(); verifyCapstoneAnalysis();" class="space-y-4 text-xs">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label for="cap-pt-resp" class="block font-semibold text-slate-700 mb-1">
+                    1. Exact Patient Responsibility Breakdown <span class="text-red-500">*</span>
+                  </label>
+                  <select id="cap-pt-resp" required class="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-slate-800">
+                    <option value="">Select financial breakdown...</option>
+                    <option value="COPAY_ONLY">Copay only was patient responsibility ($30); $30 balance is an error.</option>
+                    <option value="DEDUCTIBLE_COINSURANCE">Patient owed $30 copay at POS + $30 remaining applied to unmet deductible/coinsurance.</option>
+                    <option value="INSURER_DENIED">Insurance denied the entire claim; patient owes $150.</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="cap-why-balance" class="block font-semibold text-slate-700 mb-1">
+                    2. Why Does the $30 Balance Still Exist? (Root Cause) <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" id="cap-why-balance" required placeholder="Explain payer allowed amount ($120), copay ($30), plan paid 75% ($90), patient owes remaining $30..." class="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-slate-800">
+                </div>
+              </div>
+
+              <div>
+                <label for="cap-collection-plan" class="block font-semibold text-slate-700 mb-1">
+                  3. Clinic Collection Action Plan (45-Day Overdue Cycle) <span class="text-red-500">*</span>
+                </label>
+                <textarea id="cap-collection-plan" rows="2" required placeholder="Outline 2nd statement delivery, follow-up phone contact, text/portal notification, and payment timeline before 60-day threshold..." class="w-full p-2.5 bg-white rounded-lg border border-slate-300 text-slate-800"></textarea>
+              </div>
+
+              <div>
+                <label for="cap-draft-msg" class="block font-semibold text-slate-700 mb-1">
+                  4. Professional Written Message to Patient (Patient Portal or Letter) <span class="text-red-500">*</span>
+                </label>
+                <textarea id="cap-draft-msg" rows="3" required placeholder="Draft a polite, HIPAA-compliant notice explaining the remaining $30 after insurance adjudication and offering online payment options..." class="w-full p-2.5 bg-white rounded-lg border border-slate-300 text-slate-800"></textarea>
+              </div>
+
+              <div>
+                <label for="cap-office-recommendations" class="block font-semibold text-slate-700 mb-1">
+                  5. Preventative Administrative Recommendations for the Medical Office <span class="text-red-500">*</span>
+                </label>
+                <textarea id="cap-office-recommendations" rows="2" required placeholder="Recommend real-time 270/271 eligibility checking, estimating coinsurance at check-in, credit card on file policies, and clear financial consent..." class="w-full p-2.5 bg-white rounded-lg border border-slate-300 text-slate-800"></textarea>
+              </div>
+
+              <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                <button type="submit" class="px-5 py-2.5 bg-sky-700 hover:bg-sky-800 text-white font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
+                  <i data-lucide="award" class="w-4 h-4"></i> Submit Capstone Report & Complete Module 5
+                </button>
+                <div id="capstone-feedback-tag" class="text-xs font-semibold"></div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Comprehensive Progress & Certificate Modal -->
+  <div id="portfolio-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-700 text-white flex items-center justify-center font-bold">
+            <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Module 5 Administrative Competency Portfolio</h3>
+            <p class="text-xs text-slate-500">Official Practicum Verification Record (6 Hours Total)</p>
+          </div>
+        </div>
+        <button onclick="togglePortfolioModal()" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg" aria-label="Close dialog">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="mt-6 space-y-3">
+        <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs">
+          <span class="font-semibold text-slate-800">Lab 1: Charge Posting Challenge (10 Encounters)</span>
+          <span id="prog-badge-1" class="font-bold text-slate-500">0 / 10 Posted</span>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs">
+          <span class="font-semibold text-slate-800">Lab 2: Patient Ledger Management Reconciler</span>
+          <span id="prog-badge-2" class="font-bold text-slate-500">Not Reconciled</span>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs">
+          <span class="font-semibold text-slate-800">Lab 3: Payment Plan Design (3 Patients)</span>
+          <span id="prog-badge-3" class="font-bold text-slate-500">0 / 3 Approved</span>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs">
+          <span class="font-semibold text-slate-800">Lab 4: Collections Communication Simulation Portfolio</span>
+          <span id="prog-badge-4" class="font-bold text-slate-500">0 / 3 Scenarios</span>
+        </div>
+        <div class="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs">
+          <span class="font-semibold text-slate-800">Lab 6: Medical Billing Case Study Capstone</span>
+          <span id="prog-badge-5" class="font-bold text-slate-500">Incomplete</span>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-200 flex justify-end gap-3">
+        <button onclick="togglePortfolioModal()" class="px-4 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+          Close Window
+        </button>
+        <button onclick="window.print()" class="px-4 py-2 rounded-lg bg-sky-700 hover:bg-sky-800 text-xs font-semibold text-white shadow-sm flex items-center gap-1.5">
+          <i data-lucide="printer" class="w-4 h-4"></i> Print Official Transcript
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State Store
+    const state = {
+      activeTab: 1,
+      timerSeconds: 3600,
+      timerInterval: null,
+      isTimerRunning: true,
+      completedLabs: new Set(),
+
+      // Fee Schedule Reference
+      feeSchedule: {
+        '99203': 145,
+        '99204': 210,
+        '99212': 70,
+        '99213': 95,
+        '99214': 140,
+        '99215': 195,
+        'NONE': 0,
+        '93000': 55,
+        '36415': 25,
+        '20610': 120,
+        '17000': 110,
+        '90471': 35,
+        '81002': 15,
+        '96372': 30
+      },
+
+      // Lab 1 Data: 10 Patient Encounters
+      encounters: [
+        {
+          id: 1,
+          patient: "Maria Gomez",
+          dob: "08/14/1982",
+          ins: "Blue Cross PPO (Copay: $25)",
+          clinicalNotes: "Established patient with moderate exacerbation of asthma. Evaluated breathing, adjusted inhaler dosage.\nServices: Established visit moderate complexity (99214). Copay $25 collected at front desk.",
+          expected: { visit: "99214", proc: "NONE", copay: "25", charge: 140, mod: "NONE" }
+        },
+        {
+          id: 2,
+          patient: "Donald Fletcher",
+          dob: "03/22/1958",
+          ins: "Medicare Part B (80/20 Coinsurance, $0 Copay)",
+          clinicalNotes: "New patient consultation for chronic hypertension and chest tightness. Performed routine 12-lead ECG with physician interpretation.\nServices: New patient high complexity (99204) + ECG (93000). Modifier 25 on E/M. Copay $0 (Deductible applies).",
+          expected: { visit: "99204", proc: "93000", copay: "0", charge: 265, mod: "25" }
+        },
+        {
+          id: 3,
+          patient: "Chloe Bennet",
+          dob: "11/05/1995",
+          ins: "Aetna HMO (Copay: $30)",
+          clinicalNotes: "Established patient presenting with severe right knee osteoarthritis pain. Physician performed right knee arthrocentesis/corticosteroid injection.\nServices: Established visit low/mod (99213) + Arthrocentesis joint injection (20610). Modifier 25 required. Copay $30 collected.",
+          expected: { visit: "99213", proc: "20610", copay: "30", charge: 215, mod: "25" }
+        },
+        {
+          id: 4,
+          patient: "Kenneth Wright",
+          dob: "09/12/1971",
+          ins: "UnitedHealthcare (Copay: $40)",
+          clinicalNotes: "Established patient follow-up for diabetes check. Routine venipuncture performed by medical assistant for sending HbA1c to lab.\nServices: Established visit moderate (99214) + Routine Venipuncture (36415). Copay $40 collected.",
+          expected: { visit: "99214", proc: "36415", copay: "40", charge: 165, mod: "NONE" }
+        },
+        {
+          id: 5,
+          patient: "Eleanor Vance",
+          dob: "02/28/1964",
+          ins: "Cigna Open Access (Copay: $20)",
+          clinicalNotes: "Established patient presenting for cryosurgical destruction of single actinic keratosis on left cheek.\nServices: Destruction of premalignant lesion (17000) only. No separate E/M indicated. Copay $20 collected.",
+          expected: { visit: "NONE", proc: "17000", copay: "20", charge: 110, mod: "NONE" }
+        },
+        {
+          id: 6,
+          patient: "Liam Murphy",
+          dob: "05/17/2001",
+          ins: "Humana Choice PPO (Copay: $35)",
+          clinicalNotes: "New patient comprehensive wellness intake and evaluation of recurring migraines with neurological exam.\nServices: New patient comprehensive moderate MDM (99203). No procedures. Copay $35 collected.",
+          expected: { visit: "99203", proc: "NONE", copay: "35", charge: 145, mod: "NONE" }
+        },
+        {
+          id: 7,
+          patient: "Sandra Bullock-Jones",
+          dob: "07/30/1989",
+          ins: "TRICARE Prime (Copay: $15)",
+          clinicalNotes: "Established patient presenting for annual influenza immunization. MA administered IM injection.\nServices: Immunization administration single (90471). No E/M billed. Copay $15 collected.",
+          expected: { visit: "NONE", proc: "90471", copay: "15", charge: 35, mod: "NONE" }
+        },
+        {
+          id: 8,
+          patient: "George Washington Carver III",
+          dob: "12/04/1950",
+          ins: "Medicare Advantage (Copay: $10)",
+          clinicalNotes: "Established patient presenting with acute dysuria and flank discomfort. In-office dipstick urinalysis performed.\nServices: Established visit low/mod (99213) + Urinalysis dipstick (81002). Copay $10 collected.",
+          expected: { visit: "99213", proc: "81002", copay: "10", charge: 110, mod: "NONE" }
+        },
+        {
+          id: 9,
+          patient: "Priya Patel",
+          dob: "10/19/1993",
+          ins: "BCBS Federal Employee Plan (Copay: $30)",
+          clinicalNotes: "Established patient with acute migraine requiring urgent intramuscular Toradol injection.\nServices: Established visit moderate (99214) + Therapeutic IM injection (96372). Modifier 25 attached. Copay $30 collected.",
+          expected: { visit: "99214", proc: "96372", copay: "30", charge: 170, mod: "25" }
+        },
+        {
+          id: 10,
+          patient: "Lucas Tremblay",
+          dob: "06/08/1979",
+          ins: "Kaiser Permanente HMO (Copay: $25)",
+          clinicalNotes: "Established patient comprehensive review of unstable multi-system chronic conditions (CHF & COPD stage 3).\nServices: Established visit high complexity / prolonged decision making (99215). Copay $25 collected.",
+          expected: { visit: "99215", proc: "NONE", copay: "25", charge: 195, mod: "NONE" }
+        }
+      ],
+      currentEncounterIndex: 0,
+      postedEncounters: {},
+
+      // Lab 3 Payment Plan Patients
+      planPatients: [
+        {
+          id: 0,
+          name: "Patient A: Robert Davis",
+          balance: 250,
+          scenario: "Robert had an outpatient minor procedure. He has steady part-time income but cannot spare $250 this month due to car repairs. He requests a 3 to 5 month installment plan.",
+          minPay: 50,
+          maxMonths: 5
+        },
+        {
+          id: 1,
+          name: "Patient B: Cynthia Morales",
+          balance: 800,
+          scenario: "Cynthia incurred an emergency diagnostic series prior to meeting her high deductible. She is employed full time and can budget $100 to $160 per month.",
+          minPay: 100,
+          maxMonths: 8
+        },
+        {
+          id: 2,
+          name: "Patient C: Howard Vance",
+          balance: 1500,
+          scenario: "Howard had major outpatient surgery. He was out of work for 3 weeks on partial disability. He requests the maximum allowable 12-month extension without collections escalation.",
+          minPay: 125,
+          maxMonths: 12
+        }
+      ],
+      currentPlanIndex: 0,
+      approvedPlans: {},
+
+      // Lab 4 Dialogue Scenarios
+      collectionScenarios: {
+        1: {
+          title: "Scenario 1: Patient Refuses to Pay Balance",
+          patientName: "Arthur King",
+          accountNote: "Account 60 Days Delinquent ($185.00 for CPT 99214 + In-Office Lab)",
+          rootNode: 'scen1_start',
+          tree: {
+            scen1_start: {
+              prompt: "I am not paying this $185 bill! I pay $400 a month for health insurance! You people are ripping me off and this shouldn't be my problem!",
+              options: [
+                {
+                  text: "Calm & Empathetic De-escalation: 'I hear your frustration, Mr. King. Healthcare costs can be very overwhelming. Let's look at your insurance Explanation of Benefits together so you can see exactly how they processed it.'",
+                  next: 'scen1_step2_good',
+                  quality: 'high'
+                },
+                {
+                  text: "Confrontational Response: 'Sir, our clinic rules state you must pay. If you don't pay today, we will immediately send you to an aggressive debt collections agency.'",
+                  next: 'scen1_step2_bad',
+                  quality: 'poor'
+                }
+              ]
+            },
+            scen1_step2_bad: {
+              prompt: "Send me to collections?! Try it! I'll report you to the state medical board and never come back here!",
+              options: [
+                {
+                  text: "Reset tone: 'I apologize for coming across harshly, Mr. King. Let me take a step back. We value you as a patient and want to find an affordable way to resolve this.'",
+                  next: 'scen1_step2_good',
+                  quality: 'medium'
+                }
+              ]
+            },
+            scen1_step2_good: {
+              prompt: "Well... my insurance told me routine visits are covered at 100%. Why is there an extra $185 balance?",
+              options: [
+                {
+                  text: "Factual explanation: 'While the preventive exam was covered, the doctor also addressed your acute knee sprain and ordered diagnostic bloodwork, which was applied toward your annual deductible by your insurer.'",
+                  next: 'scen1_resolution',
+                  quality: 'high'
+                },
+                {
+                  text: "Blame insurance entirely: 'Insurance companies cheat people all the time. You need to call them and yell at them, not me.'",
+                  next: 'scen1_bad_finish',
+                  quality: 'poor'
+                }
+              ]
+            },
+            scen1_bad_finish: {
+              prompt: "That's unhelpful. I'm hanging up.",
+              options: []
+            },
+            scen1_resolution: {
+              prompt: "Oh... I didn't realize the bloodwork was separate. But I don't have $185 all at once right now.",
+              options: [
+                {
+                  text: "Offer Solution: 'We completely understand, Mr. King. We can set you up on an interest-free payment plan of just $46.25 over 4 months. Would that work for your budget?'",
+                  next: 'scen1_complete',
+                  quality: 'high'
+                }
+              ]
+            },
+            scen1_complete: {
+              prompt: "Yes, $46 a month is something I can do. Thank you for taking the time to explain that clearly without getting angry.",
+              options: []
+            }
+          }
+        },
+        2: {
+          title: "Scenario 2: Patient Claims Insurer Should Have Paid",
+          patientName: "Dorothy Gale",
+          accountNote: "Account 45 Days Past Due ($210.00 - Payer Denied for Coordination of Benefits)",
+          rootNode: 'scen2_start',
+          tree: {
+            scen2_start: {
+              prompt: "I got a bill for $210, but I have dual coverage through Blue Cross and Medicare. Blue Cross was supposed to pay this entire visit!",
+              options: [
+                {
+                  text: "Empathy & Investigation: 'Hello Mrs. Gale, let's look at the electronic remittance from Blue Cross together. It looks like they suspended the claim because they need an updated Coordination of Benefits (COB) questionnaire from you.'",
+                  next: 'scen2_solution',
+                  quality: 'high'
+                },
+                {
+                  text: "Dismissive refusal: 'Well, they didn't pay it, so under clinic policy it's your balance now. Pay it and you can deal with Blue Cross yourself.'",
+                  next: 'scen2_bad',
+                  quality: 'poor'
+                }
+              ]
+            },
+            scen2_bad: {
+              prompt: "Why am I doing your job? You're the billing department!",
+              options: [
+                {
+                  text: "Apologize & Clarify: 'I apologize Mrs. Gale. Insurers legally require the subscriber to verify other coverage annually. Let's do a 3-way call together right now.'",
+                  next: 'scen2_solution',
+                  quality: 'medium'
+                }
+              ]
+            },
+            scen2_solution: {
+              prompt: "A COB questionnaire? What do I have to do to fix that?",
+              options: [
+                {
+                  text: "Collaborative action: 'If you call the member number on the back of your Blue Cross card and confirm Medicare is primary, they will reprocess the claim. Meanwhile, I will place a 30-day billing hold on your account so you receive no collection notices.'",
+                  next: 'scen2_complete',
+                  quality: 'high'
+                }
+              ]
+            },
+            scen2_complete: {
+              prompt: "That's wonderful! I will call Blue Cross this afternoon. Thank you for placing the account on hold while it gets sorted out.",
+              options: []
+            }
+          }
+        },
+        3: {
+          title: "Scenario 3: Patient Requests Additional Time to Pay",
+          patientName: "James O'Connor",
+          accountNote: "Account 30 Days Due ($120.00 Balance)",
+          rootNode: 'scen3_start',
+          tree: {
+            scen3_start: {
+              prompt: "Hi, I received my statement for $120. I recently lost my overtime hours at work and I get paid on the 1st of next month. Can I have an extension so my account doesn't go to collections?",
+              options: [
+                {
+                  text: "Positive & Reassuring Acceptance: 'Thank you so much for proactively calling us, Mr. O'Connor! We truly appreciate you reaching out. I can gladly grant a 30-day payment extension until the 5th of next month.'",
+                  next: 'scen3_solution',
+                  quality: 'high'
+                },
+                {
+                  text: "Rigid refusal: 'No, our computer automatically flags accounts at 30 days. You have to pay at least half today.'",
+                  next: 'scen3_bad',
+                  quality: 'poor'
+                }
+              ]
+            },
+            scen3_bad: {
+              prompt: "I literally do not have the funds in my checking account right now. You would cause me an overdraft fee!",
+              options: [
+                {
+                  text: "Recover policy: 'I understand Mr. O'Connor. As an exception, let me override the system and schedule your payment for after your paycheck on the 1st.'",
+                  next: 'scen3_solution',
+                  quality: 'medium'
+                }
+              ]
+            },
+            scen3_solution: {
+              prompt: "That would be a huge relief. Do I need to fill out any paperwork?",
+              options: [
+                {
+                  text: "Confirm agreement: 'No paperwork needed for a simple 30-day courtesy extension. I have placed an official note in your billing profile: payment promised for the 5th. We will send an email confirmation.'",
+                  next: 'scen3_complete',
+                  quality: 'high'
+                }
+              ]
+            },
+            scen3_complete: {
+              prompt: "You made this so stress-free. I will pay it online the moment my direct deposit clears on the 1st. Have a great day!",
+              options: []
+            }
+          }
+        }
+      },
+      currentScenarioId: 1,
+      currentDialogueNode: 'scen1_start',
+      submittedScripts: {}
+    };
+
+    function initTimer() {
+      state.timerInterval = setInterval(() => {
+        if (!state.isTimerRunning) return;
+        if (state.timerSeconds > 0) {
+          state.timerSeconds--;
+          renderTimerDisplay();
+        } else {
+          clearInterval(state.timerInterval);
+          displayNotification("Session 60-minute interval completed. Review your deliverables.", "info");
+        }
+      }, 1000);
+    }
+
+    function renderTimerDisplay() {
+      const m = Math.floor(state.timerSeconds / 60);
+      const s = state.timerSeconds % 60;
+      document.getElementById('session-timer-text').textContent = 
+        `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function toggleTimer() {
+      state.isTimerRunning = !state.isTimerRunning;
+      document.getElementById('timer-toggle-btn').textContent = state.isTimerRunning ? "Pause" : "Resume";
+      displayNotification(state.isTimerRunning ? "Lab timer running." : "Lab timer paused.", "info");
+    }
+
+    function resetTimer() {
+      state.timerSeconds = 3600;
+      renderTimerDisplay();
+      displayNotification("Session timer reset to 60:00.", "info");
+    }
+
+    function displayNotification(msg, type = 'success') {
+      const toast = document.getElementById('toast-notify');
+      const text = document.getElementById('toast-message-text');
+      const icon = document.getElementById('toast-icon-wrap');
+      const liveAnnounce = document.getElementById('aria-announcer');
+
+      text.textContent = msg;
+      liveAnnounce.textContent = msg;
+
+      if (type === 'success') {
+        icon.className = "text-sky-400";
+        icon.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i>`;
+      } else if (type === 'warning') {
+        icon.className = "text-amber-400";
+        icon.innerHTML = `<i data-lucide="alert-circle" class="w-6 h-6"></i>`;
+      } else {
+        icon.className = "text-sky-300";
+        icon.innerHTML = `<i data-lucide="info" class="w-6 h-6"></i>`;
+      }
+      lucide.createIcons();
+
+      toast.classList.remove('opacity-0', 'translate-y-28', 'pointer-events-none');
+      setTimeout(() => {
+        dismissNotification();
+      }, 4500);
+    }
+
+    function dismissNotification() {
+      const toast = document.getElementById('toast-notify');
+      toast.classList.add('opacity-0', 'translate-y-28', 'pointer-events-none');
+    }
+
+    function activateModuleTab(tabNum) {
+      state.activeTab = tabNum;
+      for (let i = 1; i <= 5; i++) {
+        const pane = document.getElementById(`module-section-${i}`);
+        const btn = document.getElementById(`tab-button-${i}`);
+        if (i === tabNum) {
+          pane.classList.remove('hidden');
+          btn.className = "module-tab active-tab whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 bg-sky-700 text-white shadow-sm";
+          btn.setAttribute('aria-current', 'page');
+        } else {
+          pane.classList.add('hidden');
+          btn.className = "module-tab whitespace-nowrap px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900";
+          btn.removeAttribute('aria-current');
+        }
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      document.getElementById('aria-announcer').textContent = `Loaded Lab Activity Module ${tabNum}`;
+      lucide.createIcons();
+    }
+
+    function updateOverallBadges() {
+      document.getElementById('overall-completed-count').textContent = state.completedLabs.size;
+      for (let i = 1; i <= 5; i++) {
+        const tabBadge = document.getElementById(`tab-badge-${i}`);
+        const progItem = document.getElementById(`prog-badge-${i}`);
+        if (state.completedLabs.has(i)) {
+          tabBadge.classList.remove('hidden');
+          if (progItem) {
+            progItem.textContent = "Verified Complete (100%)";
+            progItem.className = "font-bold text-emerald-700";
+          }
+        }
+      }
+    }
+
+    function togglePortfolioModal() {
+      const modal = document.getElementById('portfolio-modal');
+      if (modal.classList.contains('hidden')) {
+        updateOverallBadges();
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    // =========================================================================
+    // LAB 1: CHARGE POSTING LOGIC
+    // =========================================================================
+    function initLab1EncounterButtons() {
+      const container = document.getElementById('encounter-buttons-container');
+      container.innerHTML = state.encounters.map((enc, idx) => {
+        const isPosted = !!state.postedEncounters[enc.id];
+        return `
+          <button type="button" onclick="loadEncounterCase(${idx})" id="enc-btn-${idx}" class="p-2 rounded-lg text-left text-xs font-semibold border transition ${idx === 0 ? 'bg-sky-700 text-white border-sky-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}">
+            <span class="block text-[9px] uppercase tracking-wider ${idx === 0 ? 'opacity-80' : 'text-slate-400'}">Encounter ${enc.id}</span>
+            <span class="truncate block font-bold text-[11px]">${enc.patient.split(' ')[0]}</span>
+            <span class="text-[9px] block ${isPosted ? 'text-emerald-400 font-bold' : 'text-slate-400'}">${isPosted ? 'POSTED' : 'UNPOSTED'}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function loadEncounterCase(index) {
+      state.currentEncounterIndex = index;
+      const enc = state.encounters[index];
+
+      // Update button styles
+      state.encounters.forEach((_, i) => {
+        const btn = document.getElementById(`enc-btn-${i}`);
+        if (!btn) return;
+        const isPosted = !!state.postedEncounters[state.encounters[i].id];
+        if (i === index) {
+          btn.className = "p-2 rounded-lg text-left text-xs font-semibold bg-sky-700 text-white border border-sky-700 shadow-sm transition";
+        } else {
+          btn.className = "p-2 rounded-lg text-left text-xs font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition";
+        }
+      });
+
+      // Display clinical slip
+      document.getElementById('encounter-badge-id').textContent = `CASE #${enc.id} of 10`;
+      document.getElementById('encounter-slip-view').textContent = 
+        `PATIENT: ${enc.patient.toUpperCase()}\n` +
+        `DOB: ${enc.dob} | MRN: #MED-${1000 + enc.id}\n` +
+        `INSURANCE: ${enc.ins}\n` +
+        `DATE OF SERVICE: Today\n` +
+        `----------------------------------------\n` +
+        `PROVIDER CLINICAL NOTES:\n${enc.clinicalNotes}`;
+
+      document.getElementById('post-patient-name').value = enc.patient;
+      document.getElementById('lab1-feedback-message').textContent = '';
+
+      // If already posted, prepopulate
+      if (state.postedEncounters[enc.id]) {
+        const p = state.postedEncounters[enc.id];
+        document.getElementById('post-visit-type').value = p.visit;
+        document.getElementById('post-procedure').value = p.proc;
+        document.getElementById('post-copay-collected').value = p.copay;
+        document.getElementById('post-total-charge').value = p.charge;
+        document.getElementById('post-modifier').value = p.mod;
+      } else {
+        document.getElementById('lab1-posting-form').reset();
+        document.getElementById('post-patient-name').value = enc.patient;
+      }
+    }
+
+    function submitChargePostingCase() {
+      const enc = state.encounters[state.currentEncounterIndex];
+      const visit = document.getElementById('post-visit-type').value;
+      const proc = document.getElementById('post-procedure').value;
+      const copay = document.getElementById('post-copay-collected').value.trim();
+      const charge = parseFloat(document.getElementById('post-total-charge').value);
+      const mod = document.getElementById('post-modifier').value;
+      const fb = document.getElementById('lab1-feedback-message');
+
+      const isVisitMatch = visit === enc.expected.visit;
+      const isProcMatch = proc === enc.expected.proc;
+      const isCopayMatch = copay === enc.expected.copay;
+      const isChargeMatch = charge === enc.expected.charge;
+      const isModMatch = mod === enc.expected.mod;
+
+      if (isVisitMatch && isProcMatch && isCopayMatch && isChargeMatch && isModMatch) {
+        fb.className = "text-xs font-bold text-emerald-700";
+        fb.textContent = `✓ Encounter #${enc.id} charges successfully posted to ledger!`;
+
+        state.postedEncounters[enc.id] = {
+          patient: enc.patient,
+          visit: visit,
+          proc: proc,
+          copay: copay,
+          charge: charge,
+          mod: mod
+        };
+
+        initLab1EncounterButtons();
+        renderChargePostingTable();
+        displayNotification(`Encounter #${enc.id} posted ($${charge} billed, $${copay} copay).`);
+
+        const postedCount = Object.keys(state.postedEncounters).length;
+        document.getElementById('lab1-progress-tag').textContent = `Posted: ${postedCount} of 10 Encounters`;
+        document.getElementById('prog-badge-1').textContent = `${postedCount} / 10 Posted`;
+
+        if (postedCount === 10) {
+          state.completedLabs.add(1);
+          updateOverallBadges();
+          displayNotification("Lab 1 Completed! All 10 encounters posted accurately.", "success");
+        }
+      } else {
+        fb.className = "text-xs font-bold text-rose-600";
+        fb.textContent = `✗ Error detected. Re-verify visit level, procedure code, modifier, and total fee schedule sum ($${enc.expected.charge}).`;
+        displayNotification("Posting validation failed. Check fee calculations.", "warning");
+      }
+    }
+
+    function renderChargePostingTable() {
+      const tbody = document.getElementById('charge-posting-tbody');
+      let totalCharges = 0;
+      let totalCopays = 0;
+
+      const rows = state.encounters.map(enc => {
+        const item = state.postedEncounters[enc.id];
+        if (item) {
+          totalCharges += item.charge;
+          totalCopays += parseFloat(item.copay || 0);
+          return `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+              <td class="py-2 px-3 font-mono font-bold">${enc.id}</td>
+              <td class="py-2 px-3 font-semibold text-slate-900 font-sans">${enc.patient}</td>
+              <td class="py-2 px-3 font-mono text-sky-800 font-bold">${item.visit}</td>
+              <td class="py-2 px-3 text-slate-700">${item.proc}</td>
+              <td class="py-2 px-3 font-mono">${item.mod !== 'NONE' ? `<span class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">-${item.mod}</span>` : '—'}</td>
+              <td class="py-2 px-3 font-mono text-slate-900 font-bold">$${item.charge.toFixed(2)}</td>
+              <td class="py-2 px-3 font-mono text-emerald-700 font-bold">$${parseFloat(item.copay).toFixed(2)}</td>
+              <td class="py-2 px-3"><span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-sans font-bold">POSTED</span></td>
+            </tr>
+          `;
+        }
+        return `
+          <tr class="hover:bg-slate-50/50 text-slate-400 border-b border-slate-100">
+            <td class="py-2 px-3 font-mono">${enc.id}</td>
+            <td class="py-2 px-3 font-sans">${enc.patient}</td>
+            <td class="py-2 px-3 italic">Pending audit...</td>
+            <td class="py-2 px-3">—</td>
+            <td class="py-2 px-3">—</td>
+            <td class="py-2 px-3">$0.00</td>
+            <td class="py-2 px-3">$0.00</td>
+            <td class="py-2 px-3"><span class="text-[10px] text-slate-400">UNPOSTED</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.innerHTML = rows;
+      document.getElementById('log-total-revenue').textContent = 
+        `Total Day Charges: $${totalCharges.toFixed(2)} | Copays Collected: $${totalCopays.toFixed(2)}`;
+    }
+
+    function autoFillEncounter() {
+      const enc = state.encounters[state.currentEncounterIndex];
+      document.getElementById('post-visit-type').value = enc.expected.visit;
+      document.getElementById('post-procedure').value = enc.expected.proc;
+      document.getElementById('post-copay-collected').value = enc.expected.copay;
+      document.getElementById('post-total-charge').value = enc.expected.charge;
+      document.getElementById('post-modifier').value = enc.expected.mod;
+      displayNotification(`Filled encounter with expected codes: $${enc.expected.charge}. Click 'Post' to commit.`, 'info');
+    }
+
+    // =========================================================================
+    // LAB 2: PATIENT LEDGER MANAGEMENT
+    // =========================================================================
+    function verifyLedgerAudit() {
+      const charges = parseFloat(document.getElementById('led-total-charges').value);
+      const insPaid = parseFloat(document.getElementById('led-total-inspaid').value);
+      const ptPaid = parseFloat(document.getElementById('led-total-ptpaid').value);
+      const adjustments = parseFloat(document.getElementById('led-total-adjustments').value);
+      const currentBal = parseFloat(document.getElementById('led-current-balance').value);
+      const ptResp = parseFloat(document.getElementById('led-patient-responsibility').value);
+      const fb = document.getElementById('ledger-feedback-box');
+
+      // Correct math:
+      // Gross Charges: $150 (Oct) + $150 (Nov) = $300.00
+      // Ins Paid: $85 (Oct) + $60 (Nov) = $145.00
+      // Pt Paid: $30 (Oct) + $30 (Nov) = $60.00
+      // Adjustments: $35 (Oct) + $20 (Nov) = $55.00
+      // Current Account Balance: 300 - 145 - 60 - 55 = $40.00
+      // Remaining Patient Responsibility: $40.00
+
+      if (charges === 300 && insPaid === 145 && ptPaid === 60 && adjustments === 55 && currentBal === 40 && ptResp === 40) {
+        fb.className = "text-xs font-bold text-emerald-700";
+        fb.textContent = "✓ Ledger Reconciled Perfectly! Final Outstanding Patient Responsibility: $40.00.";
+        state.completedLabs.add(2);
+        updateOverallBadges();
+        displayNotification("Lab 2 Completed! Evelyn Reed's ledger verified.", "success");
+      } else {
+        fb.className = "text-xs font-bold text-rose-600";
+        fb.textContent = "✗ Recheck column sums: Total Charges = $300, Ins = $145, Pt = $60, Adjustments = $55, Balance = $40.";
+        displayNotification("Ledger mathematical error detected.", "warning");
+      }
+    }
+
+    function autoFillLedger() {
+      document.getElementById('led-total-charges').value = 300;
+      document.getElementById('led-total-inspaid').value = 145;
+      document.getElementById('led-total-ptpaid').value = 60;
+      document.getElementById('led-total-adjustments').value = 55;
+      document.getElementById('led-current-balance').value = 40;
+      document.getElementById('led-patient-responsibility').value = 40;
+      displayNotification("Ledger values populated. Click 'Validate' to confirm.", "info");
+    }
+
+    // =========================================================================
+    // LAB 3: PAYMENT PLAN DESIGN LOGIC
+    // =========================================================================
+    function loadPlanPatient(index) {
+      state.currentPlanIndex = index;
+      [0, 1, 2].forEach(i => {
+        const btn = document.getElementById(`plan-tab-${i}`);
+        if (i === index) {
+          btn.className = "plan-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-sky-700 text-white shadow-sm border border-sky-700";
+        } else {
+          btn.className = "plan-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50";
+        }
+      });
+
+      const p = state.planPatients[index];
+      document.getElementById('plan-patient-bio').innerHTML = `
+        <p><strong>Patient Name:</strong> ${p.name}</p>
+        <p><strong>Outstanding Balance:</strong> $${p.balance.toFixed(2)}</p>
+        <p class="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-800 leading-relaxed">${p.scenario}</p>
+        <p class="text-sky-800 font-semibold font-mono text-[11px]">Recommended parameters: Min $${p.minPay}/mo, Max ${p.maxMonths} payments.</p>
+      `;
+
+      document.getElementById('plan-patient-name').value = p.name;
+      document.getElementById('plan-total-balance').value = `$${p.balance.toFixed(2)}`;
+      document.getElementById('plan-feedback-status').textContent = '';
+
+      if (state.approvedPlans[p.id]) {
+        const ap = state.approvedPlans[p.id];
+        document.getElementById('plan-num-payments').value = ap.num;
+        document.getElementById('plan-monthly-amount').value = ap.amount;
+        document.getElementById('plan-comm-strategy').value = ap.strat;
+      } else {
+        document.getElementById('plan-num-payments').value = '';
+        document.getElementById('plan-monthly-amount').value = '';
+        document.getElementById('plan-comm-strategy').value = '';
+      }
+    }
+
+    function calculateInstallmentSuggestion() {
+      const p = state.planPatients[state.currentPlanIndex];
+      const count = parseInt(document.getElementById('plan-num-payments').value, 10);
+      if (count > 0) {
+        const perMonth = (p.balance / count).toFixed(2);
+        document.getElementById('plan-monthly-amount').value = perMonth;
+      }
+    }
+
+    function verifyPaymentPlanCase() {
+      const p = state.planPatients[state.currentPlanIndex];
+      const count = parseInt(document.getElementById('plan-num-payments').value, 10);
+      const amount = parseFloat(document.getElementById('plan-monthly-amount').value);
+      const strat = document.getElementById('plan-comm-strategy').value.trim();
+      const fb = document.getElementById('plan-feedback-status');
+
+      const isCountValid = count >= 2 && count <= p.maxMonths;
+      const isAmountValid = amount >= p.minPay && (amount * count >= p.balance - 2);
+
+      if (isCountValid && isAmountValid && strat.length > 20) {
+        fb.className = "text-xs font-bold text-emerald-700";
+        fb.textContent = "✓ Installment Agreement Approved & Documented!";
+
+        state.approvedPlans[p.id] = {
+          name: p.name,
+          balance: p.balance,
+          num: count,
+          amount: amount,
+          strat: strat
+        };
+
+        renderApprovedPlans();
+        displayNotification(`Payment plan logged for ${p.name}!`);
+
+        const approvedCount = Object.keys(state.approvedPlans).length;
+        document.getElementById('prog-badge-3').textContent = `${approvedCount} / 3 Approved`;
+
+        if (approvedCount === 3) {
+          state.completedLabs.add(3);
+          updateOverallBadges();
+          displayNotification("Lab 3 Completed! All 3 patient payment plans authorized.", "success");
+        }
+      } else {
+        fb.className = "text-xs font-bold text-rose-600";
+        fb.textContent = `✗ Does not meet clinic rules: Min payment is $${p.minPay}, Max installments is ${p.maxMonths}, and provide a detailed communication strategy.`;
+        displayNotification("Plan does not comply with clinic guidelines.", "warning");
+      }
+    }
+
+    function renderApprovedPlans() {
+      const container = document.getElementById('approved-plans-container');
+      container.innerHTML = state.planPatients.map(p => {
+        const item = state.approvedPlans[p.id];
+        if (item) {
+          return `
+            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
+              <div class="flex items-center justify-between font-bold text-emerald-900">
+                <span class="truncate">${p.name.split(':')[1]}</span>
+                <span class="text-[10px] font-mono text-emerald-700 font-bold">$${p.balance}</span>
+              </div>
+              <p class="font-mono text-emerald-800 text-[11px]">${item.num} payments @ $${item.amount.toFixed(2)}/mo</p>
+              <p class="text-[10px] text-emerald-700 italic truncate">${item.strat}</p>
+            </div>
+          `;
+        }
+        return `
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-400">
+            <span class="font-semibold block truncate">${p.name}</span>
+            <span class="text-[11px] font-mono">$${p.balance.toFixed(2)} pending plan...</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // LAB 4: COLLECTIONS COMMUNICATION SIMULATION
+    // =========================================================================
+    function loadCollectionScenario(id) {
+      state.currentScenarioId = id;
+      const scen = state.collectionScenarios[id];
+      state.currentDialogueNode = scen.rootNode;
+
+      [1, 2, 3].forEach(i => {
+        const btn = document.getElementById(`col-scen-btn-${i}`);
+        if (i === id) {
+          btn.className = "col-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-sky-700 text-white shadow-sm border border-sky-700";
+        } else {
+          btn.className = "col-tab-btn px-4 py-2 rounded-lg text-xs font-bold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50";
+        }
+      });
+
+      document.getElementById('col-caller-name').textContent = `Patient: ${scen.patientName}`;
+      document.getElementById('col-caller-sub').textContent = scen.accountNote;
+      document.getElementById('col-script-desc').innerHTML = `Construct your verified script for <strong>${scen.title}</strong>. Incorporate empathy, clinic policies, and actionable options.`;
+      document.getElementById('col-script-feedback').textContent = '';
+
+      resetCollectionDialogue();
+    }
+
+    function resetCollectionDialogue() {
+      const scen = state.collectionScenarios[state.currentScenarioId];
+      state.currentDialogueNode = scen.rootNode;
+      document.getElementById('col-chat-stream').innerHTML = '';
+      renderCollectionDialogue();
+    }
+
+    function renderCollectionDialogue() {
+      const scen = state.collectionScenarios[state.currentScenarioId];
+      const node = scen.tree[state.currentDialogueNode];
+      const chatContainer = document.getElementById('col-chat-stream');
+      const choicesContainer = document.getElementById('col-choice-actions');
+
+      if (!node) return;
+
+      // Append patient speech bubble
+      const patientBubble = document.createElement('div');
+      patientBubble.className = "flex gap-2.5 items-start";
+      patientBubble.innerHTML = `
+        <div class="w-7 h-7 rounded-full bg-rose-100 text-rose-800 flex items-center justify-center font-bold text-[10px] flex-shrink-0">PT</div>
+        <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm text-xs text-slate-800 max-w-[85%] leading-relaxed">
+          ${node.prompt}
+        </div>
+      `;
+      chatContainer.appendChild(patientBubble);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      // Render response options
+      choicesContainer.innerHTML = '';
+      if (node.options.length === 0) {
+        choicesContainer.innerHTML = `
+          <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+            <span>Dialogue successfully resolved! Now document your official script on the right.</span>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      node.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-2.5 rounded-lg border border-slate-300 hover:border-sky-600 hover:bg-sky-50/50 bg-white text-xs text-slate-800 transition leading-snug font-medium focus:ring-2 focus:ring-sky-600";
+        btn.textContent = opt.text;
+        btn.onclick = () => {
+          // User response bubble
+          const userBubble = document.createElement('div');
+          userBubble.className = "flex gap-2.5 items-start justify-end";
+          userBubble.innerHTML = `
+            <div class="bg-sky-700 text-white p-3 rounded-2xl rounded-tr-none shadow-sm text-xs max-w-[85%] leading-relaxed">
+              ${opt.text}
+            </div>
+            <div class="w-7 h-7 rounded-full bg-sky-800 text-white flex items-center justify-center font-bold text-[10px] flex-shrink-0">MA</div>
+          `;
+          chatContainer.appendChild(userBubble);
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+
+          state.currentDialogueNode = opt.next;
+          setTimeout(() => {
+            renderCollectionDialogue();
+          }, 350);
+        };
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    function submitCollectionScript() {
+      const empathy = document.getElementById('script-empathy').value.trim();
+      const policy = document.getElementById('script-policy').value.trim();
+      const solution = document.getElementById('script-solution').value.trim();
+      const nextstep = document.getElementById('script-nextstep').value.trim();
+      const fb = document.getElementById('col-script-feedback');
+
+      if (empathy.length > 15 && policy.length > 20 && solution.length > 15 && nextstep.length > 15) {
+        fb.className = "text-xs font-bold text-emerald-700";
+        fb.textContent = `✓ Script for Scenario ${state.currentScenarioId} saved to portfolio!`;
+
+        state.submittedScripts[state.currentScenarioId] = {
+          scenarioId: state.currentScenarioId,
+          empathy: empathy,
+          policy: policy,
+          solution: solution,
+          nextstep: nextstep
+        };
+
+        renderScriptPortfolio();
+        displayNotification(`Scenario ${state.currentScenarioId} script approved!`);
+
+        const count = Object.keys(state.submittedScripts).length;
+        document.getElementById('prog-badge-4').textContent = `${count} / 3 Scenarios`;
+
+        if (count === 3) {
+          state.completedLabs.add(4);
+          updateOverallBadges();
+          displayNotification("Lab 4 Completed! All 3 financial scripts finalized.", "success");
+        }
+      } else {
+        fb.className = "text-xs font-bold text-rose-600";
+        fb.textContent = "✗ Please provide thorough, professional statements across all 4 script sections.";
+        displayNotification("Script incomplete. Elaborate on empathy and solutions.", "warning");
+      }
+    }
+
+    function renderScriptPortfolio() {
+      const container = document.getElementById('portfolio-scripts-grid');
+      container.innerHTML = [1, 2, 3].map(id => {
+        const item = state.submittedScripts[id];
+        const scen = state.collectionScenarios[id];
+        if (item) {
+          return `
+            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
+              <div class="flex items-center justify-between font-bold text-emerald-900">
+                <span>Scenario ${id}</span>
+                <span class="text-[10px] font-mono text-emerald-700">PORTFOLIO LOGGED</span>
+              </div>
+              <p class="text-emerald-800 text-[11px] truncate">Emp: "${item.empathy}"</p>
+              <p class="text-emerald-800 text-[11px] truncate">Sol: "${item.solution}"</p>
+            </div>
+          `;
+        }
+        return `
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-400">
+            <span class="font-semibold block">Scenario ${id}: ${scen.patientName}</span>
+            <span class="text-[11px]">Script not logged yet</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // LAB 5 / LAB 6: BILLING CASE STUDY CAPSTONE
+    // =========================================================================
+    function verifyCapstoneAnalysis() {
+      const ptResp = document.getElementById('cap-pt-resp').value;
+      const whyBal = document.getElementById('cap-why-balance').value.trim();
+      const plan = document.getElementById('cap-collection-plan').value.trim();
+      const msg = document.getElementById('cap-draft-msg').value.trim();
+      const reco = document.getElementById('cap-office-recommendations').value.trim();
+      const fb = document.getElementById('capstone-feedback-tag');
+
+      // Check required answers
+      const isRespCorrect = ptResp === "DEDUCTIBLE_COINSURANCE";
+      const isWhyBalThorough = whyBal.length >= 25;
+      const isPlanThorough = plan.length >= 30;
+      const isMsgThorough = msg.length >= 40;
+      const isRecoThorough = reco.length >= 30;
+
+      if (isRespCorrect && isWhyBalThorough && isPlanThorough && isMsgThorough && isRecoThorough) {
+        fb.className = "text-xs font-bold text-emerald-700";
+        fb.textContent = "✓ Capstone Case Study Analysis Approved (100% Mastery)!";
+
+        state.completedLabs.add(5);
+        updateOverallBadges();
+        displayNotification("Lab 6 Capstone Completed! Full Module 5 Verified.", "success");
+        togglePortfolioModal();
+      } else {
+        fb.className = "text-xs font-bold text-rose-600";
+        fb.textContent = "✗ Please select the accurate financial breakdown (patient owed copay + unmet deductible/coinsurance) and write complete clinical recommendations.";
+        displayNotification("Capstone analysis requires more thorough detail.", "warning");
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTimer();
+      initLab1EncounterButtons();
+      loadEncounterCase(0);
+      renderChargePostingTable();
+      loadPlanPatient(0);
+      renderApprovedPlans();
+      loadCollectionScenario(1);
+      renderScriptPortfolio();
+      updateOverallBadges();
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
